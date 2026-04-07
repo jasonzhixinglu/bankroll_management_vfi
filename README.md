@@ -1,4 +1,4 @@
-# Poker Optimal Bankroll Management
+# Optimal Poker Bankroll Management
 
 A self-contained Python implementation of the Optimal Bankroll Management
 (OBM) framework. The model frames game selection as a dynamic programming
