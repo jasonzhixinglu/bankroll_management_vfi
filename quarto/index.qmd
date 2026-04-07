@@ -11,13 +11,11 @@ format:
 
 ## Introduction
 
-A poker player deciding which game to sit in faces a problem that looks simple but is not: should I play 1/2, move up to 2/5, or take an outside option like working a regular job? The obvious answer — play whichever game has the highest expected hourly winrate — is wrong.
+The central question in poker bankroll management is which game to play given a current bankroll. The naive answer — play the game with the highest expected hourly winrate — ignores a key feature of the problem: bankroll is not just a consumption good. It is also a capital good. A larger bankroll unlocks access to higher-stakes games, which offer a higher rate of converting time into money. This means the value of a dollar depends on where it puts you relative to the next move-up threshold.
 
-The reason is that money does two different things for a poker player. It is a **consumption good** in the ordinary sense, but it is also a **capital good**: a larger bankroll gives access to higher-stakes games, which convert time into money at a higher rate. Moving from 1/2 to 2/5, for example, roughly doubles the hourly dollar stakes and (if you have an edge) your expected hourly earnings. This means that a dollar lost at 1/2 costs more than just a dollar — it delays or forecloses the move up to 2/5, destroying option value on top of the direct loss.
+Because losses are more costly than equal-sized gains — losses delay or foreclose a move up, destroying option value on top of the direct loss — a player with a risk-neutral terminal payoff will behave as if risk-averse in game selection. This risk aversion is not assumed; it is a consequence of the discrete structure of available games.
 
-This asymmetry — losses are more costly than equivalent gains because of the option value they destroy — makes a player who is completely indifferent to risk in their final wealth *behave as if risk-averse* when choosing which game to play. The optimal bankroll manager is not risk-averse by assumption; they are risk-averse because the math forces it.
-
-This document presents two models for finding the optimal game-selection rule. The **finite-horizon DP** solves the problem by backward induction over a fixed time horizon. The **infinite-horizon OBM** finds a stationary policy via value iteration, using the Certainty-Equivalent Winrate (CEW) as its central output. Both are benchmarked against the **Kelly criterion**, the standard log-utility benchmark in gambling and finance.
+This document presents two models for deriving optimal game-selection rules. The **finite-horizon DP** solves the problem by backward induction over a fixed time horizon. The **infinite-horizon OBM** finds a stationary policy via value iteration, using the Certainty-Equivalent Winrate (CEW) as its convergence criterion and main output. Both are benchmarked against the **Kelly criterion**.
 
 ---
 
@@ -25,13 +23,11 @@ This document presents two models for finding the optimal game-selection rule. T
 
 ### Setup
 
-The player starts each period with bankroll $x$ and picks one of $N$ games. The state evolves according to a simplified Bernoulli transition: with probability $p_i = (\sigma_i / B_i)^2$ the player wins or loses a full buyin $B_i$; otherwise the bankroll shifts by the mean gain $\mu_i$. The player cannot sit in a game they cannot afford. At the end of $T = 2000$ periods the player cashes out, and the terminal payoff is simply the bankroll — no curvature, no risk aversion built in by assumption.
+Each period the player holds bankroll $x$ and selects one of $N$ games. Transitions follow a Bernoulli stack-off rule: with probability $p_i = (\sigma_i / B_i)^2$ the player wins or loses a full buyin $B_i$; otherwise the bankroll shifts by the mean gain $\mu_i$. A game is only available when $x \geq B_i + x_{\min}$. The terminal payoff is $V_T(x) = x$ — no curvature, no risk aversion by assumption.
 
-The model is solved by backward induction: starting from the known terminal value, the program works backwards one period at a time, computing the best game at each bankroll level.
+The model is solved by backward induction from the known terminal value, computing the optimal game at each bankroll level for each period $t = T-1, \ldots, 0$.
 
 ### Game parameters
-
-The baseline calibration covers three options.
 
 | Game | Buyin $B$ | Mean gain $\mu$ ($/hr) | Std dev $\sigma$ ($/hr) |
 |------|----------:|----------------------:|------------------------:|
@@ -39,11 +35,11 @@ The baseline calibration covers three options.
 | 1/2 NL | 200 | 12 | 80 |
 | 2/5 NL | 500 | 20 | 250 |
 
-Work is a risk-free outside option available at any bankroll. The 1/2 game is the next step up — higher EV but with variance — and 2/5 offers higher EV still, but requires a larger bankroll to absorb the swings.
+Work is a risk-free outside option available at any bankroll. The 1/2 and 2/5 games offer higher expected returns but require sufficient bankroll to cover the buyin.
 
 ### Optimal policy and value function
 
-The two panels below show the optimal game at each bankroll (left) and the value function (right) for three representative time periods: $t = 0$ (far from the horizon), $t = 1950$ (50 periods remaining), and $t = 1999$ (final period).
+The figures below show the optimal game (left) and value function (right) for three periods: $t = 0$ (far from the horizon), $t = 1950$ (50 periods remaining), and $t = 1999$ (final period).
 
 ::: {.columns}
 ::: {.column width="50%"}
@@ -54,15 +50,15 @@ The two panels below show the optimal game at each bankroll (left) and the value
 :::
 :::
 
-At $t = 0$, the optimal policy switches from 1/2 to 2/5 at a bankroll of roughly **\$811–\$933**. As the horizon shrinks (moving from $t = 0$ toward $t = 1999$), the thresholds shift left — the player becomes more willing to take risk because there is less time for the optionality of higher stakes to pay off. By the final period, the player plays whichever game has the highest raw EV, because with one period left there is no future optionality to protect.
+At $t = 0$, the policy switches from 1/2 to 2/5 at a bankroll of roughly **\$811–\$933**. As the horizon shortens, the threshold falls — with fewer periods remaining, there is less time for the option value of higher stakes to compound, so the player moves up sooner. At $t = 1999$, the player selects the game with the highest raw EV, since no future optionality remains.
 
 ### Implied risk aversion
 
-Even though the model assumes a risk-neutral terminal payoff, it generates endogenous risk aversion in game selection. The figure below recovers this implied risk aversion by asking: what CRRA utility function $u(x) = x^{1-\eta}/(1-\eta)$ would produce the same curvature as the observed value function at each bankroll level?
+Although the terminal payoff is risk-neutral, the value function is concave in bankroll. The figure below recovers the implied CRRA coefficient $\eta(x)$ by inverting the local ratio of CRRA utilities at consecutive grid points.
 
 ![Implied coefficient of relative risk aversion η(x) at t = 0. Reference lines mark log utility (η = 1) and risk neutrality (η = 0).](figures/finite_dp_eta.png)
 
-At a bankroll of \$1,000, the implied $\eta$ exceeds 1 — the player is *more* risk-averse than a log-utility agent because the option value of 1/2 is large relative to the current stake. As the bankroll grows into the hundreds of thousands, $\eta$ falls close to zero: the player is nearly indifferent between games because their bankroll is large enough that no move-up threshold binds. The curvature is entirely a product of the discrete game choices, not of any assumption about preferences.
+At low bankrolls, $\eta > 1$ — the option value of the 1/2 game is large relative to current stakes, producing stronger-than-log-utility curvature. At high bankrolls, $\eta$ approaches zero as no binding move-up threshold remains. The curvature comes entirely from the discrete game structure, not from any preference assumption.
 
 ---
 
@@ -70,19 +66,15 @@ At a bankroll of \$1,000, the implied $\eta$ exceeds 1 — the player is *more* 
 
 ### Setup and the CEW metric
 
-The finite-horizon model gives the right answer for a fixed window, but poker is not a finite game. The infinite-horizon OBM drops the time horizon and finds a stationary policy — one that is optimal to follow forever.
+The finite-horizon model requires specifying a time horizon. The infinite-horizon OBM drops this requirement and solves for a stationary policy via value iteration: starting from an initial value function, compute $E[V(x')]$ for each game, update $V$, and repeat until convergence.
 
-The algorithm works by value iteration: start with an initial guess for the value function, compute the best game at each bankroll, update the value function, and repeat until convergence. Rather than tracking convergence in value-function units, the model uses the **Certainty-Equivalent Winrate (CEW)** as its main metric.
-
-The CEW at bankroll $x$ for game $n$ is the fixed dollar amount per period that makes the player exactly indifferent between accepting it and playing game $n$ under the current value function. It is a bankroll-adjusted winrate: a game with high variance but high upside may have a low CEW at small bankrolls (when ruin risk is real) but a high CEW at large bankrolls (when variance is manageable). The optimal game at any bankroll is simply the one with the highest CEW.
+Convergence is measured using the **Certainty-Equivalent Winrate (CEW)**. The CEW at bankroll $x$ for game $n$ is the fixed dollar amount per period that leaves the player indifferent between accepting it and playing game $n$ under the current value function. It is a bankroll-adjusted winrate: a high-variance game may have low CEW at small bankrolls but high CEW at large ones. The optimal game at any bankroll is the one with the highest CEW.
 
 ### Kelly as a benchmark
 
-The Kelly criterion is the special case where the value function is $\log(x)$ — that is, the player maximises expected log bankroll each period without looking ahead. Kelly has a closed-form solution (no iteration needed) and serves as the natural one-shot benchmark. The difference between Kelly and OBM CEW curves quantifies how much the recursive model's full pricing of future optionality changes the answer.
+The Kelly criterion sets the value function to $\log(x)$ — the player maximises expected log bankroll each period without looking ahead. This has a closed-form solution and requires no iteration. It serves as the one-shot benchmark; the difference between Kelly and OBM CEW curves shows what recursive optionality pricing adds.
 
 ### Game parameters
-
-The infinite-horizon model uses four games.
 
 | Game | Buyin $B$ | Winrate $w$ ($/hr) | Std dev $\sigma$ ($/hr) | Min viable bankroll |
 |------|----------:|-------------------:|------------------------:|--------------------:|
@@ -91,28 +83,28 @@ The infinite-horizon model uses four games.
 | 2/5 NL | 200 | 15 | 200 | \$600 |
 | 5/10 NL | 500 | 20 | 500 | \$1,500 |
 
-A game is only available when the bankroll exceeds twice the buyin and three standard deviations — below this the risk of ruin within a session is too high to model with normal approximation.
+A game is available only when the bankroll exceeds twice the buyin and three standard deviations, below which the normal approximation to the session outcome breaks down.
 
 ### Convergence
 
-Value iteration converges in 47 iterations, taking under a second. The convergence plot below shows the max relative change in CEW per iteration (starting from iteration 2, after the large initial jump from the Kelly starting point).
+Value iteration converges in 47 iterations, taking under a second. The plot below shows the max relative change in CEW per iteration, starting from iteration 2.
 
-![CEW distance between successive iterations on a log scale. The algorithm crosses the tolerance threshold of 0.01 in about 20 iterations and is essentially flat by iteration 40.](figures/obm_convergence.png)
+![CEW distance between successive iterations on a log scale. The algorithm crosses the tolerance threshold of 0.01 in about 20 iterations and is flat by iteration 40.](figures/obm_convergence.png)
 
 ### CEW curves and thresholds
 
-The two panels below show the CEW for each game under OBM (left) and Kelly (right). The dotted horizontals mark each game's true hourly EV; the dashed verticals mark the move-up thresholds.
+The figures below show the per-game CEW under OBM (left) and Kelly (right). Dotted horizontals mark true hourly EV; dashed verticals mark move-up thresholds.
 
 ::: {.columns}
 ::: {.column width="50%"}
 ![OBM CEW by game. The optimal game at any bankroll is the one with the highest curve.](figures/obm_cew.png)
 :::
 ::: {.column width="50%"}
-![Kelly CEW by game. The same format, but Kelly is computed without recursive optionality.](figures/kelly_cew.png)
+![Kelly CEW by game. Same format, computed without recursive optionality.](figures/kelly_cew.png)
 :::
 :::
 
-Both models agree qualitatively: each game has a bankroll range where it is optimal, and the crossings define the move-up thresholds. The curves differ in shape — OBM CEW rises more steeply at low bankrolls because the recursive model prices the near-term option value more aggressively.
+Both models produce qualitatively similar CEW curves with well-defined crossings that define move-up thresholds. OBM CEW rises more steeply at low bankrolls because the recursive model prices near-term option value more aggressively than Kelly.
 
 ### OBM vs Kelly thresholds
 
@@ -124,18 +116,16 @@ Both models agree qualitatively: each game has a bankroll range where it is opti
 | 1/2 → 2/5  | \$2,994 | \$2,725 | 0.91× |
 | 2/5 → 5/10 | \$20,917 | \$18,982 | 0.91× |
 
-OBM recommends moving up earlier at every transition, and the effect is largest at the first step. At a bankroll of \$546 — barely half what Kelly would suggest — the OBM player should already be sitting in the 1/2 game rather than working. The gap narrows at higher transitions (around 9% earlier rather than 45% earlier) because at larger bankrolls the marginal option value of the next game is smaller relative to current stakes.
+OBM recommends moving up earlier at every transition. The gap is largest at the first step (OBM threshold is 55% of Kelly's) because the option value of the 1/2 game is large relative to the outside option. At higher transitions the gap narrows to around 9%, as the marginal option value of the next game is smaller relative to current stakes.
 
-The direction of this result is intuitive once you think about it carefully. Kelly ignores what happens after the current period — it just maximises the growth rate of this period's bankroll. OBM sees that moving up sooner accelerates the journey to the next threshold, and prices that acceleration into the current decision. The result is a policy that is more aggressive about moving up but for economically coherent reasons, not out of recklessness.
+Kelly maximises the current period's bankroll growth rate without accounting for what happens next. OBM prices the value of reaching the next threshold sooner, producing move-up thresholds that are systematically lower.
 
 ---
 
 ## Conclusion
 
-Two complementary models of optimal bankroll management reach consistent conclusions.
+**Endogenous risk aversion.** A risk-neutral player choosing among discrete games behaves as if risk-averse. The implied CRRA coefficient exceeds log utility at low bankrolls — where option value is large relative to stakes — and declines toward zero as the bankroll grows past all binding thresholds.
 
-**Endogenous risk aversion.** A player who is perfectly indifferent to risk in their final wealth will nonetheless behave as if risk-averse when choosing games. The source of this risk aversion is entirely the option value of higher stakes: losing a buyin is worse than winning one is good, because losses delay the move up. The implied coefficient of relative risk aversion exceeds log utility at low bankrolls and declines toward zero as the bankroll grows — a clean prediction that could, in principle, be tested against actual player behavior.
+**OBM vs Kelly thresholds.** OBM recommends moving up at 55% of the Kelly threshold for the first transition, and around 91% for subsequent transitions. Kelly overstates the required bankroll because it ignores the compounding value of reaching higher games sooner.
 
-**OBM vs Kelly thresholds.** The recursive OBM model recommends moving up significantly earlier than Kelly at the first game transition (at 55% of the Kelly threshold) and modestly earlier at subsequent transitions (around 91%). Kelly is a useful benchmark and easy to compute, but it systematically overestimates how large a bankroll you need before moving up, because it does not account for the compounding value of getting into a higher game sooner.
-
-Several natural extensions are left for future work. **Living expenses** introduce a withdrawal from the bankroll each period, which makes ruin a real absorbing state and tilts the policy toward more conservative game selection. **Occasional high-stakes invitations** — a 5/10 game that appears randomly — can be incorporated as an additional game choice available with some probability each period, and the model will price the option of accepting or declining. **Tournament settings** change the structure fundamentally: the prize is non-linear in finishing position, buyins are discrete and large relative to the bankroll, and re-entry decisions add another layer of optionality. Each of these extensions fits naturally within the dynamic programming framework developed here.
+Natural extensions include **living expenses** (a per-period withdrawal that makes ruin an absorbing state), **occasional high-stakes invitations** (a higher game available with some probability each period), and **tournament settings** (non-linear prize structures, discrete large buyins, re-entry decisions). Each fits within the dynamic programming framework developed here.
