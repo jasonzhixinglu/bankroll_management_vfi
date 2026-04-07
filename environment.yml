@@ -1,0 +1,17 @@
+name: brm
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - seaborn
+  - statsmodels
+  - jupyterlab
+  - notebook
+  - pip
+  - pip:
+      - -e .
