@@ -1,9 +1,10 @@
 # Optimal Bankroll Management
 
-Replication code for the Optimal Bankroll Management (OBM) model. The
-model frames game selection as a dynamic programming problem and derives
-the bankroll thresholds at which a player should move up to higher stakes
-— without relying on risk-of-ruin heuristics or the Kelly criterion.
+A self-contained Python implementation of the Optimal Bankroll Management
+(OBM) framework. The model frames game selection as a dynamic programming
+problem and derives the bankroll thresholds at which a player should move
+up to higher stakes — without relying on risk-of-ruin heuristics or the
+Kelly criterion.
 
 ## Models
 

@@ -17,8 +17,6 @@ The reason is that money does two different things for a poker player. It is a *
 
 This asymmetry — losses are more costly than equivalent gains because of the option value they destroy — makes a player who is completely indifferent to risk in their final wealth *behave as if risk-averse* when choosing which game to play. The optimal bankroll manager is not risk-averse by assumption; they are risk-averse because the math forces it.
 
-This document accompanies a clean Python replication of the model, written from scratch to make the logic and moving parts as transparent as possible. The goal is exposition rather than novelty — the code is structured to be read alongside the results, and the full source is available in the [repository](https://github.com/jasonzhixinglu/bankroll_management_vfi).
-
 This document presents two models for finding the optimal game-selection rule. The **finite-horizon DP** solves the problem by backward induction over a fixed time horizon. The **infinite-horizon OBM** finds a stationary policy via value iteration, using the Certainty-Equivalent Winrate (CEW) as its central output. Both are benchmarked against the **Kelly criterion**, the standard log-utility benchmark in gambling and finance.
 
 ---
