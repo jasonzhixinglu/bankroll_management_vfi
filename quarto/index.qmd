@@ -1,6 +1,6 @@
 ---
 title: "Optimal Bankroll Management"
-author: "Jason Zhixing Lu"
+author: "Jason Lu"
 date: today
 format:
   html:
