@@ -1,5 +1,5 @@
 """
-brm — Optimal Bankroll Management
+brm — Optimal Poker Bankroll Management
 ==================================
 
 Two models for selecting and switching between poker games optimally:

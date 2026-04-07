@@ -1,5 +1,5 @@
 """
-Infinite-horizon Optimal Bankroll Management via value iteration.
+Infinite-horizon Optimal Poker Bankroll Management via value iteration.
 
 Algorithm
 ---------

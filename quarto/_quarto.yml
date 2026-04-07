@@ -3,7 +3,7 @@ project:
   output-dir: ../docs
 
 website:
-  title: "Optimal Bankroll Management"
+  title: "Optimal Poker Bankroll Management"
   navbar:
     left:
       - href: index.qmd
