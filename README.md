@@ -21,6 +21,12 @@ Next-period bankrolls are sampled with 7-point normal quadrature; the
 value function is interpolated log-linearly. Benchmarked against the
 one-shot Kelly criterion (`brm.kelly`).
 
+## Key results
+
+**Kelly comparison.** Kelly (1956) derived the optimal BRM strategy under the assumption that game conditions scale continuously with bet size; Chen & Ankenman (2006) use it as a benchmark for poker BRM while noting that the continuous scaling assumption does not match the discrete structure of real game selection. OBM derives the true optimal policy without imposing any utility function. The OBM move-up thresholds are lower than Kelly's at every transition (55% of Kelly at the first step, ~91% at higher transitions). The direction is not obvious: higher-stakes games have worse Sharpe ratios than lower-stakes games in this calibration, which should push thresholds above Kelly, but recursive pricing of the full optionality chain dominates and pulls them below.
+
+**Tournament extensions.** BRM is likely most consequential in tournament poker in two ways. First, game selection — choosing which tournaments to enter — has the same discrete-choice structure as cash games but with higher variance and larger buyins, amplifying the option-value effects. Second, BRM interacts with in-tournament decision making: standard CEV analysis ignores ICM, and both ignore the risk aversion that arises from bankroll considerations. A player with a limited bankroll should be more risk-averse at the final table than either framework suggests, because chips represent not just prize equity but future playing capital.
+
 ## Quickstart
 
 ```bash

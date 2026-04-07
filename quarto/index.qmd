@@ -15,7 +15,7 @@ The central question in poker bankroll management is which game to play given a 
 
 Because losses are more costly than equal-sized gains — losses delay or foreclose a move up, destroying option value on top of the direct loss — a player with a risk-neutral terminal payoff will behave as if risk-averse in game selection. This risk aversion is not assumed; it is a consequence of the discrete structure of available games.
 
-This document presents two models for deriving optimal game-selection rules. The **finite-horizon DP** solves the problem by backward induction over a fixed time horizon. The **infinite-horizon OBM** finds a stationary policy via value iteration, using the Certainty-Equivalent Winrate (CEW) as its convergence criterion and main output. Both are benchmarked against the **Kelly criterion**.
+This document presents two models for deriving optimal game-selection rules. The **finite-horizon DP** solves the problem by backward induction over a fixed time horizon. The **infinite-horizon OBM** finds a stationary policy via value iteration, using the Certainty-Equivalent Winrate (CEW) as its convergence criterion and main output. Both are benchmarked against the **Kelly criterion**; comparing the two is the central result.
 
 ---
 
@@ -54,11 +54,11 @@ At $t = 0$, the policy switches from 1/2 to 2/5 at a bankroll of roughly **\$811
 
 ### Implied risk aversion
 
-Although the terminal payoff is risk-neutral, the value function is concave in bankroll. The figure below recovers the implied CRRA coefficient $\eta(x)$ by inverting the local ratio of CRRA utilities at consecutive grid points.
+Although the terminal payoff is risk-neutral, the value function is concave in bankroll. The figure below recovers the implied CRRA coefficient $\eta(x)$ at $t = 0$ by inverting the local ratio of CRRA utilities at consecutive grid points. The reference line at $\eta = 1$ marks log utility — the Kelly criterion's implicit utility function.
 
 ![Implied coefficient of relative risk aversion η(x) at t = 0. Reference lines mark log utility (η = 1) and risk neutrality (η = 0).](figures/finite_dp_eta.png)
 
-At low bankrolls, $\eta > 1$ — the option value of the 1/2 game is large relative to current stakes, producing stronger-than-log-utility curvature. At high bankrolls, $\eta$ approaches zero as no binding move-up threshold remains. The curvature comes entirely from the discrete game structure, not from any preference assumption.
+The plot reveals a clean pattern relative to the Kelly benchmark. For bankrolls up to roughly \$10,000, the implied $\eta$ exceeds 1: the discrete option value of the 1/2 game is large relative to current stakes, producing stronger risk aversion than log utility. Above that range, $\eta$ falls below 1 and continues declining toward zero as no binding move-up threshold remains. Kelly is thus neither uniformly too conservative nor uniformly too aggressive — it underestimates risk aversion at low bankrolls and overestimates it at high ones. The curvature comes entirely from the discrete game structure, not from any preference assumption.
 
 ---
 
@@ -72,7 +72,11 @@ Convergence is measured using the **Certainty-Equivalent Winrate (CEW)**. The CE
 
 ### Kelly as a benchmark
 
-The Kelly criterion sets the value function to $\log(x)$ — the player maximises expected log bankroll each period without looking ahead. This has a closed-form solution and requires no iteration. It serves as the one-shot benchmark; the difference between Kelly and OBM CEW curves shows what recursive optionality pricing adds.
+Kelly (1956) derived the optimal BRM strategy under the assumption that game conditions scale continuously and linearly with bet size — the player can always stake exactly the fraction of bankroll that maximises expected log growth. Under these assumptions, Kelly is genuinely optimal without imposing any exogenous risk aversion; the log-utility behavior emerges from the objective of maximising long-run bankroll growth. In that setting, the implied CRRA coefficient is exactly 1 everywhere.
+
+Chen & Ankenman (2006) use Kelly as a benchmark for optimal BRM in poker, but acknowledge that the continuous scaling assumption does not match the discrete structure of real game selection: a player cannot stake an arbitrary fraction of their bankroll, only choose among a fixed menu of games with fixed buyin sizes. They interpret Kelly as an approximation to the true optimal policy; alternatively, it can be understood as imposing log utility as an exogenous preference rather than deriving it from first principles.
+
+The OBM model derives the actual optimal policy under discrete game choice, without assuming any utility function. Risk aversion emerges endogenously from the option value structure of the game menu. Kelly is computed here as the one-shot benchmark — setting the value function to $\log(x)$ and solving in closed form without iteration — and the gap between Kelly and OBM quantifies what recursive optionality pricing adds.
 
 ### Game parameters
 
@@ -91,7 +95,7 @@ Value iteration converges in 47 iterations, taking under a second. The plot belo
 
 ![CEW distance between successive iterations on a log scale. The algorithm crosses the tolerance threshold of 0.01 in about 20 iterations and is flat by iteration 40.](figures/obm_convergence.png)
 
-### CEW curves and thresholds
+### CEW curves
 
 The figures below show the per-game CEW under OBM (left) and Kelly (right). Dotted horizontals mark true hourly EV; dashed verticals mark move-up thresholds.
 
@@ -106,7 +110,9 @@ The figures below show the per-game CEW under OBM (left) and Kelly (right). Dott
 
 Both models produce qualitatively similar CEW curves with well-defined crossings that define move-up thresholds. OBM CEW rises more steeply at low bankrolls because the recursive model prices near-term option value more aggressively than Kelly.
 
-### OBM vs Kelly thresholds
+### OBM vs Kelly: interpretation
+
+The comparison between OBM and Kelly is the central result of this analysis.
 
 ![Move-up thresholds under OBM and Kelly on a log scale. OBM recommends moving up earlier at every transition.](figures/obm_vs_kelly_thresholds.png)
 
@@ -116,16 +122,20 @@ Both models produce qualitatively similar CEW curves with well-defined crossings
 | 1/2 → 2/5  | \$2,994 | \$2,725 | 0.91× |
 | 2/5 → 5/10 | \$20,917 | \$18,982 | 0.91× |
 
-OBM recommends moving up earlier at every transition. The gap is largest at the first step (OBM threshold is 55% of Kelly's) because the option value of the 1/2 game is large relative to the outside option. At higher transitions the gap narrows to around 9%, as the marginal option value of the next game is smaller relative to current stakes.
+OBM recommends moving up earlier at every transition. The gap is largest at the first step — the OBM threshold is 55% of Kelly's — and narrows to around 9% at higher transitions.
 
-Kelly maximises the current period's bankroll growth rate without accounting for what happens next. OBM prices the value of reaching the next threshold sooner, producing move-up thresholds that are systematically lower.
+The direction of this result is not obvious, because two forces act on the threshold in opposite directions. The first pushes the OBM threshold *above* Kelly: in this calibration, higher-stakes games have worse Sharpe ratios than lower-stakes games. In Kelly's continuous world, risk and reward scale together linearly, so moving up is always proportionally attractive. With discrete games, the next game up may be a worse risk-adjusted bet per dollar of bankroll than the current one. This means the option value of moving up is lower than Kelly assumes, which, all else equal, would make the player *less* eager to reach the next threshold — implying a higher move-up bankroll, not a lower one.
+
+Yet the net effect is a lower threshold. Some feature — or combination of features — of the discrete game structure dominates and pulls the threshold below Kelly's. The recursive pricing of future optionality is the natural candidate: reaching the 1/2 game at a bankroll of \$546 instead of \$999 means getting to the 2/5 threshold sooner as well, which in turn means getting to 5/10 sooner. The OBM model prices the entire chain of future optionality; Kelly prices only today's growth rate. This difference is largest at the first transition, where the full chain lies ahead, and smallest at the highest transition, where only one more step remains.
+
+It is also consistent with the CRRA pattern from the finite-horizon model: at low bankrolls the recursive model is *more* risk-averse than Kelly (implying a higher threshold on risk-per-dollar grounds) and *less* risk-averse at high bankrolls (implying a lower threshold). The fact that the threshold ends up lower overall suggests the optionality-chain effect outweighs the risk-aversion effect in net. We do not decompose the two contributions further here, but the threshold ratios provide a clean reduced-form summary of their interaction.
 
 ---
 
 ## Conclusion
 
-**Endogenous risk aversion.** A risk-neutral player choosing among discrete games behaves as if risk-averse. The implied CRRA coefficient exceeds log utility at low bankrolls — where option value is large relative to stakes — and declines toward zero as the bankroll grows past all binding thresholds.
+**Endogenous risk aversion.** A risk-neutral player choosing among discrete games behaves as if risk-averse. The implied CRRA coefficient exceeds log utility (Kelly's $\eta = 1$) at low bankrolls and falls below it at high bankrolls, declining toward zero once all move-up thresholds are behind the player. Kelly is a reasonable approximation in the middle of the bankroll distribution but underestimates risk aversion where it matters most — at low bankrolls, where the option value of the next game is largest relative to current stakes.
 
-**OBM vs Kelly thresholds.** OBM recommends moving up at 55% of the Kelly threshold for the first transition, and around 91% for subsequent transitions. Kelly overstates the required bankroll because it ignores the compounding value of reaching higher games sooner.
+**OBM vs Kelly thresholds.** OBM recommends moving up at 55% of the Kelly threshold for the first transition and around 91% for subsequent transitions. Two opposing forces shape this result: worse Sharpe ratios at higher stakes push the threshold above Kelly, while recursive pricing of the full optionality chain pulls it below. The chain effect dominates, especially at the first transition where all future games lie ahead.
 
-Natural extensions include **living expenses** (a per-period withdrawal that makes ruin an absorbing state), **occasional high-stakes invitations** (a higher game available with some probability each period), and **tournament settings** (non-linear prize structures, discrete large buyins, re-entry decisions). Each fits within the dynamic programming framework developed here.
+**Tournament extensions.** BRM considerations are likely most consequential in tournament poker, in two distinct ways. The first is game selection: choosing which tournaments to enter involves the same discrete-choice structure as cash game selection, but with higher variance and larger buyins relative to bankroll, amplifying the option-value effects documented here. The second is more subtle: BRM interacts with in-tournament decision making. Standard chip EV (CEV) analysis fails to account for ICM — the non-linear relationship between chips and prize equity. On top of this, both CEV and ICM ignore the risk aversion that arises from bankroll considerations. A player with a limited bankroll should be more risk-averse at the final table than either framework suggests, because chips represent not just prize equity but future playing capital.
